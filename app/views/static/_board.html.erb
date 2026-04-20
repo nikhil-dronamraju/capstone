@@ -1,0 +1,194 @@
+<section class="planner-shell" id="planner-board">
+  <aside class="planner-panel planner-nav">
+    <div class="planner-nav__header">
+      <p class="eyebrow">Milestones</p>
+      <h2>Focus</h2>
+    </div>
+
+    <% if milestones.any? %>
+      <nav class="planner-nav__list" aria-label="Milestones">
+        <% milestones.each do |milestone| %>
+          <% selected = @active_milestone == milestone %>
+          <%= link_to root_path(milestone_id: milestone.id), class: ["planner-nav__item", ("is-active" if selected)].compact.join(" ") do %>
+            <strong><%= milestone.name %></strong>
+            <span><%= milestone_date_range(milestone) %></span>
+          <% end %>
+        <% end %>
+      </nav>
+    <% else %>
+      <div class="planner-empty">
+        <h2>No milestones yet</h2>
+        <p>Add the first milestone above and start filling in the tree.</p>
+      </div>
+    <% end %>
+  </aside>
+
+  <section class="planner-panel planner-focus">
+    <% if @active_milestone.present? %>
+      <div class="planner-focus__header">
+        <div class="planner-focus__heading">
+          <div>
+            <p class="eyebrow">Current View</p>
+            <h2><%= @active_goal&.name || @active_milestone.name %></h2>
+          </div>
+
+          <div class="planner-focus__meta">
+            <% if @active_goal.present? %>
+              <span><%= goal_date_range(@active_goal) %></span>
+              <span><%= pluralize(@active_goal.todos.size, "todo") %></span>
+              <span><%= pluralize(@goals_by_parent.fetch(@active_goal.id, []).size, "subgoal") %></span>
+            <% else %>
+              <span><%= milestone_date_range(@active_milestone) %></span>
+              <span><%= pluralize(goals_by_milestone.fetch(@active_milestone.id, []).size, "goal") %></span>
+              <span><%= pluralize(milestone_total_todos(@active_milestone, goals_by_milestone), "todo") %></span>
+            <% end %>
+          </div>
+        </div>
+
+        <div class="planner-focus-row__actions">
+          <% if @active_goal.present? %>
+            <%= button_tag "Adjust", type: "button", class: "button button--secondary", data: { editor_target: "goal-editor-#{@active_goal.id}" } %>
+            <%= button_to "Delete", goal_path(@active_goal, milestone_id: @active_milestone.id), method: :delete, class: "button button--danger", form_class: "inline-form" %>
+          <% else %>
+            <%= button_tag "Adjust", type: "button", class: "button button--secondary", data: { editor_target: "milestone-editor-#{@active_milestone.id}" } %>
+            <%= button_to "Delete", milestone_path(@active_milestone, milestone_id: @active_milestone.id), method: :delete, class: "button button--danger", form_class: "inline-form" %>
+          <% end %>
+        </div>
+      </div>
+
+      <nav class="planner-breadcrumbs" aria-label="Breadcrumb">
+        <%= link_to "All milestones", root_path %>
+        <% if @active_milestone.present? %>
+          <%= link_to @active_milestone.name, root_path(milestone_id: @active_milestone.id) %>
+        <% end %>
+        <% @goal_chain.each do |goal| %>
+          <%= link_to goal.name, root_path(milestone_id: @active_milestone.id, goal_id: goal.id) %>
+        <% end %>
+      </nav>
+
+      <% if @active_goal.present? %>
+        <% child_goals = goals_by_parent.fetch(@active_goal.id, []) %>
+
+        <div class="planner-stack">
+          <section class="planner-editor" id="goal-editor-<%= @active_goal.id %>" hidden>
+            <%= form_with model: @active_goal, url: goal_path(@active_goal, milestone_id: @active_milestone.id, goal_id: @active_goal.id), class: "planner-editor-form" do |form| %>
+              <%= form.text_field :name, class: "input", placeholder: "Goal name" %>
+              <%= form.date_field :start_date, class: "input" %>
+              <%= form.date_field :end_date, class: "input" %>
+              <div class="planner-editor-actions">
+                <%= form.submit "Save", class: "button button--primary" %>
+                <%= button_tag "Close", type: "button", class: "button button--secondary", data: { editor_close: "goal-editor-#{@active_goal.id}" } %>
+              </div>
+            <% end %>
+          </section>
+
+          <section class="planner-focus-block">
+            <div class="planner-block__header">
+              <h3>Subgoals</h3>
+            </div>
+            <div class="planner-list">
+              <% child_goals.each do |goal| %>
+                <div class="planner-list-row">
+                  <%= link_to root_path(milestone_id: @active_milestone.id, goal_id: goal.id), class: "planner-list-row__link" do %>
+                    <strong><%= goal.name %></strong>
+                    <span><%= goal_date_range(goal) %></span>
+                  <% end %>
+                </div>
+              <% end %>
+            </div>
+
+            <%= form_with model: Goal.new, url: goals_path(milestone_id: @active_milestone.id, goal_id: @active_goal.id), class: "planner-add-row" do |form| %>
+              <%= form.hidden_field :milestone_id, value: @active_goal.milestone_id %>
+              <%= form.hidden_field :parent_goal_id, value: @active_goal.id %>
+              <%= form.text_field :name, class: "input", placeholder: "Add a subgoal" %>
+              <%= form.submit "Add subgoal", class: "button button--primary" %>
+            <% end %>
+          </section>
+
+          <section class="planner-focus-block">
+            <div class="planner-block__header">
+              <h3>Todos</h3>
+            </div>
+            <div class="planner-list">
+              <% @active_goal.todos.each do |todo| %>
+                <div class="planner-list-row planner-list-row--todo">
+                  <div class="planner-focus-row">
+                    <div class="planner-focus-row__main">
+                      <strong><%= todo.name %></strong>
+                      <p><%= todo_date_range(todo) %></p>
+                    </div>
+                    <div class="planner-focus-row__actions">
+                      <%= button_tag "Adjust", type: "button", class: "button button--secondary", data: { editor_target: "todo-editor-#{todo.id}" } %>
+                      <%= button_to "Delete", todo_path(todo, milestone_id: @active_milestone.id, goal_id: @active_goal.id), method: :delete, class: "button button--danger", form_class: "inline-form" %>
+                    </div>
+                  </div>
+
+                  <div class="planner-editor" id="todo-editor-<%= todo.id %>" hidden>
+                    <%= form_with model: todo, url: todo_path(todo, milestone_id: @active_milestone.id, goal_id: @active_goal.id), class: "planner-editor-form" do |form| %>
+                      <%= form.text_field :name, class: "input", placeholder: "Todo name" %>
+                      <%= form.date_field :start_date, class: "input" %>
+                      <%= form.date_field :end_date, class: "input" %>
+                      <div class="planner-editor-actions">
+                        <%= form.submit "Save", class: "button button--primary" %>
+                        <%= button_tag "Close", type: "button", class: "button button--secondary", data: { editor_close: "todo-editor-#{todo.id}" } %>
+                      </div>
+                    <% end %>
+                  </div>
+                </div>
+              <% end %>
+            </div>
+
+            <%= form_with model: Todo.new, url: todos_path(milestone_id: @active_milestone.id, goal_id: @active_goal.id), class: "planner-add-row" do |form| %>
+              <%= form.hidden_field :goal_id, value: @active_goal.id %>
+              <%= form.text_field :name, class: "input", placeholder: "Add a todo" %>
+              <%= form.submit "Add todo", class: "button button--secondary" %>
+            <% end %>
+          </section>
+        </div>
+      <% else %>
+        <% root_goals = goals_by_parent.fetch(nil, []).select { |goal| goal.milestone_id == @active_milestone.id } %>
+
+        <div class="planner-stack">
+          <section class="planner-editor" id="milestone-editor-<%= @active_milestone.id %>" hidden>
+            <%= form_with model: @active_milestone, url: milestone_path(@active_milestone, milestone_id: @active_milestone.id), class: "planner-editor-form" do |form| %>
+              <%= form.text_field :name, class: "input", placeholder: "Milestone name" %>
+              <%= form.date_field :start_date, class: "input" %>
+              <%= form.date_field :end_date, class: "input" %>
+              <div class="planner-editor-actions">
+                <%= form.submit "Save", class: "button button--primary" %>
+                <%= button_tag "Close", type: "button", class: "button button--secondary", data: { editor_close: "milestone-editor-#{@active_milestone.id}" } %>
+              </div>
+            <% end %>
+          </section>
+
+          <section class="planner-focus-block">
+            <div class="planner-block__header">
+              <h3>Goals</h3>
+            </div>
+            <div class="planner-list">
+              <% root_goals.each do |goal| %>
+                <div class="planner-list-row">
+                  <%= link_to root_path(milestone_id: @active_milestone.id, goal_id: goal.id), class: "planner-list-row__link" do %>
+                    <strong><%= goal.name %></strong>
+                    <span><%= goal_date_range(goal) %></span>
+                  <% end %>
+                </div>
+              <% end %>
+            </div>
+
+            <%= form_with model: Goal.new, url: goals_path(milestone_id: @active_milestone.id), class: "planner-add-row" do |form| %>
+              <%= form.hidden_field :milestone_id, value: @active_milestone.id %>
+              <%= form.text_field :name, class: "input", placeholder: "Add a goal" %>
+              <%= form.submit "Add goal", class: "button button--primary" %>
+            <% end %>
+          </section>
+        </div>
+      <% end %>
+    <% else %>
+      <div class="planner-empty">
+        <h2>No focus yet</h2>
+        <p>Create a milestone to start working inside a single branch.</p>
+      </div>
+    <% end %>
+  </section>
+</section>

@@ -1,0 +1,4 @@
+<%= form_with model: milestone, url: milestones_path(milestone_id: @active_milestone&.id, goal_id: @active_goal&.id), class: "planner-inline-form planner-inline-form--milestone" do |form| %>
+  <%= form.text_field :name, class: "input", placeholder: "Add a milestone" %>
+  <%= form.submit "Add milestone", class: "button button--primary" %>
+<% end %>

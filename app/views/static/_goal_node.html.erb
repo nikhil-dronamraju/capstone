@@ -1,0 +1,87 @@
+<% child_goals = goals_by_parent.fetch(goal.id, []) %>
+<section class="planner-goal" id="<%= dom_id(goal) %>">
+  <div class="planner-row planner-row--goal">
+    <div class="planner-row__main">
+      <p class="planner-row__title"><%= goal.name %></p>
+      <p class="planner-row__meta">
+        <span><%= goal_date_range(goal) %></span>
+        <span><%= pluralize(child_goals.size, "subgoal") %></span>
+        <span><%= pluralize(goal.todos.size, "todo") %></span>
+      </p>
+    </div>
+
+    <div class="planner-row__actions">
+      <%= button_tag "Adjust", type: "button", class: "button button--secondary", data: { editor_target: "goal-editor-#{goal.id}" } %>
+      <%= button_to "Delete", goal_path(goal), method: :delete, class: "button button--danger", form_class: "inline-form" %>
+    </div>
+  </div>
+
+  <section class="planner-editor" id="goal-editor-<%= goal.id %>" hidden>
+    <%= form_with model: goal, class: "planner-editor-form" do |form| %>
+      <%= form.text_field :name, class: "input", placeholder: "Goal name" %>
+      <%= form.date_field :start_date, class: "input" %>
+      <%= form.date_field :end_date, class: "input" %>
+      <div class="planner-editor-actions">
+        <%= form.submit "Save", class: "button button--primary" %>
+        <%= button_tag "Close", type: "button", class: "button button--secondary", data: { editor_close: "goal-editor-#{goal.id}" } %>
+      </div>
+    <% end %>
+  </section>
+
+  <div class="planner-goal__content">
+    <% if goal.todos.any? %>
+      <ul class="planner-branch planner-branch--todos">
+        <% goal.todos.each do |todo| %>
+          <li class="planner-todo-block" id="<%= dom_id(todo) %>">
+            <div class="planner-row planner-row--todo">
+              <div class="planner-row__main">
+                <p class="planner-row__title"><%= todo.name %></p>
+                <p class="planner-row__meta"><span><%= todo_date_range(todo) %></span></p>
+              </div>
+
+              <div class="planner-row__actions">
+                <%= button_tag "Adjust", type: "button", class: "button button--secondary", data: { editor_target: "todo-editor-#{todo.id}" } %>
+                <%= button_to "Delete", todo_path(todo), method: :delete, class: "button button--danger", form_class: "inline-form" %>
+              </div>
+            </div>
+
+            <div class="planner-editor planner-editor--todo" id="todo-editor-<%= todo.id %>" hidden>
+              <%= form_with model: todo, class: "planner-editor-form" do |form| %>
+                <%= form.text_field :name, class: "input", placeholder: "Todo name" %>
+                <%= form.date_field :start_date, class: "input" %>
+                <%= form.date_field :end_date, class: "input" %>
+                <div class="planner-editor-actions">
+                  <%= form.submit "Save", class: "button button--primary" %>
+                  <%= button_tag "Close", type: "button", class: "button button--secondary", data: { editor_close: "todo-editor-#{todo.id}" } %>
+                </div>
+              <% end %>
+            </div>
+          </li>
+        <% end %>
+      </ul>
+    <% end %>
+
+    <div class="planner-goal__adds">
+      <%= form_with model: Goal.new, class: "planner-add-row planner-add-row--goal" do |form| %>
+        <%= form.hidden_field :milestone_id, value: goal.milestone_id %>
+        <%= form.hidden_field :parent_goal_id, value: goal.id %>
+        <%= form.text_field :name, class: "input", placeholder: "Add a subgoal" %>
+        <%= form.submit "Add subgoal", class: "button button--primary" %>
+      <% end %>
+
+      <%= form_with model: Todo.new, class: "planner-add-row planner-add-row--todo" do |form| %>
+        <%= form.hidden_field :goal_id, value: goal.id %>
+        <%= form.text_field :name, class: "input", placeholder: "Add a todo" %>
+        <%= form.submit "Add todo", class: "button button--secondary" %>
+      <% end %>
+    </div>
+
+    <% if child_goals.any? %>
+      <div class="planner-children">
+        <% child_goals.each do |child_goal| %>
+          <%= render "static/goal_node", goal: child_goal, goals_by_parent: goals_by_parent %>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+</section>

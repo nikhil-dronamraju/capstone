@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title><%= content_for(:title) || "Pm" %></title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,300..700;1,300..700&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet">
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+
+    <%= yield :head %>
+
+    <%# Enable PWA manifest for installable apps (make sure to enable in config/routes.rb too!) %>
+    <%#= tag.link rel: "manifest", href: pwa_manifest_path(format: :json) %>
+
+    <link rel="icon" href="/icon.png" type="image/png">
+    <link rel="icon" href="/icon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="/icon.png">
+
+    <%# Includes all stylesheet files in app/assets/stylesheets %>
+    <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
+    <%= javascript_importmap_tags %>
+  </head>
+
+  <body>
+    <script>
+      (() => {
+        const storedTheme = localStorage.getItem("pm-theme");
+        const systemDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+        const theme = storedTheme || (systemDark ? "dark" : "light");
+        document.documentElement.dataset.theme = theme;
+      })();
+    </script>
+
+    <div class="app-shell">
+      <header class="app-header">
+        <div class="app-header__inner">
+          <%= link_to "PM", root_path, class: "app-brand" %>
+
+          <nav class="app-nav" aria-label="Primary">
+            <%= link_to "Planner", root_path, class: "app-nav__link" %>
+          </nav>
+
+          <button class="theme-toggle" type="button" data-theme-toggle aria-label="Toggle color theme">
+            Theme
+          </button>
+        </div>
+      </header>
+
+      <%= yield %>
+    </div>
+
+    <script>
+      (() => {
+        const toggle = document.querySelector("[data-theme-toggle]");
+        if (!toggle) return;
+
+        const syncLabel = () => {
+          const theme = document.documentElement.dataset.theme || "light";
+          toggle.textContent = theme === "dark" ? "Light mode" : "Dark mode";
+        };
+
+        toggle.addEventListener("click", () => {
+          const current = document.documentElement.dataset.theme || "light";
+          const next = current === "dark" ? "light" : "dark";
+          document.documentElement.dataset.theme = next;
+          localStorage.setItem("pm-theme", next);
+          syncLabel();
+        });
+
+        syncLabel();
+      })();
+    </script>
+  </body>
+</html>

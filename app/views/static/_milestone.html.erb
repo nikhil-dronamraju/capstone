@@ -1,0 +1,46 @@
+<% root_goals = goals_by_parent.fetch(nil, []).select { |goal| goal.milestone_id == milestone.id } %>
+<section class="planner-milestone" id="<%= dom_id(milestone) %>">
+  <div class="planner-row planner-row--milestone">
+    <div class="planner-row__main">
+      <h3 class="planner-row__title"><%= milestone.name %></h3>
+      <p class="planner-row__meta">
+        <span><%= milestone_date_range(milestone) %></span>
+        <span><%= pluralize(goals_by_milestone.fetch(milestone.id, []).size, "goal") %></span>
+        <span><%= pluralize(milestone_total_todos(milestone, goals_by_milestone), "todo") %></span>
+      </p>
+    </div>
+
+    <div class="planner-row__actions">
+      <%= button_tag "Adjust", type: "button", class: "button button--secondary", data: { editor_target: "milestone-editor-#{milestone.id}" } %>
+      <%= button_to "Delete", milestone_path(milestone), method: :delete, class: "button button--danger", form_class: "inline-form" %>
+    </div>
+  </div>
+
+  <section class="planner-editor" id="milestone-editor-<%= milestone.id %>" hidden>
+    <%= form_with model: milestone, class: "planner-editor-form" do |form| %>
+      <%= form.text_field :name, class: "input", placeholder: "Milestone name" %>
+      <%= form.date_field :start_date, class: "input" %>
+      <%= form.date_field :end_date, class: "input" %>
+      <div class="planner-editor-actions">
+        <%= form.submit "Save", class: "button button--primary" %>
+        <%= button_tag "Close", type: "button", class: "button button--secondary", data: { editor_close: "milestone-editor-#{milestone.id}" } %>
+      </div>
+    <% end %>
+  </section>
+
+  <div class="planner-milestone__content">
+    <% if root_goals.any? %>
+      <div class="planner-branch planner-branch--milestone">
+        <% root_goals.each do |goal| %>
+          <%= render "static/goal_node", goal: goal, goals_by_parent: goals_by_parent %>
+        <% end %>
+      </div>
+    <% end %>
+
+    <%= form_with model: Goal.new, class: "planner-add-row planner-add-row--goal" do |form| %>
+      <%= form.hidden_field :milestone_id, value: milestone.id %>
+      <%= form.text_field :name, class: "input", placeholder: "Add a top-level goal" %>
+      <%= form.submit "Add goal", class: "button button--primary" %>
+    <% end %>
+  </div>
+</section>

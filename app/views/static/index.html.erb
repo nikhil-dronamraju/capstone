@@ -1,0 +1,20 @@
+<% content_for :title, "Planner" %>
+
+<main class="planner-page">
+  <section class="planner-hero planner-hero--compact">
+    <div class="planner-hero__copy">
+      <p class="eyebrow">Planner</p>
+      <h1>Work the plan.</h1>
+      <p class="planner-hero__lede">Capture fast, organize in place, and keep the whole hierarchy in one flow.</p>
+    </div>
+    <%= render "static/stats", milestones: @milestones, goals: @goals %>
+  </section>
+
+  <section class="planner-panel planner-panel--composer">
+    <div id="milestone_form">
+      <%= render "static/milestone_form", milestone: Milestone.new %>
+    </div>
+  </section>
+
+  <%= render "static/board", milestones: @milestones, goals_by_parent: @goals_by_parent, goals_by_milestone: @goals_by_milestone %>
+</main>

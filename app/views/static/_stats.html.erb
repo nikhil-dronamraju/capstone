@@ -1,0 +1,14 @@
+<div class="planner-stats" id="planner-stats">
+  <article>
+    <strong><%= milestones.size %></strong>
+    <span>Milestones</span>
+  </article>
+  <article>
+    <strong><%= goals.size %></strong>
+    <span>Goals</span>
+  </article>
+  <article>
+    <strong><%= goals.sum { |goal| goal.todos.size } %></strong>
+    <span>Todos</span>
+  </article>
+</div>
